@@ -1,39 +1,39 @@
 export default {
   async fetch(request) {
-    // 1. Перенаправляем запрос на целевой сайт
-    const url = new URL(request.url);
-    const targetUrl = "https://lifemart.ru" + url.pathname + url.search;
+    // 1. Целевой URL (вы можете изменить department при необходимости)
+    const targetUrl = "https://lifemart.ru/apps/coffee-logs/index.html?department=240";
 
+    // 2. Загружаем страницу
     const response = await fetch(targetUrl, {
       headers: {
         "Host": "lifemart.ru",
-        "User-Agent": request.headers.get("User-Agent") || ""
+        "User-Agent": request.headers.get("User-Agent") || "Mozilla/5.0"
       }
     });
 
-    // 2. Проверяем, что ответ — HTML
+    // 3. Проверяем, что это HTML
     const contentType = response.headers.get("content-type") || "";
     if (!contentType.includes("text/html")) {
-      return response; // картинки, CSS, JS пропускаем без изменений
+      return response;
     }
 
-    // 3. Читаем HTML
-    const html = await response.text();
+    // 4. Читаем HTML-код
+    let html = await response.text();
 
-    // 4. Удаляем блок debug-panel (и всё его содержимое)
+    // 5. Удаляем блок debug-panel (и всё, что внутри)
     //    Ищем <div ... class="...debug-panel..."> ... </div>
-    const modifiedHtml = html.replace(
+    html = html.replace(
       /<div[^>]*class="[^"]*debug-panel[^"]*"[^>]*>[\s\S]*?<\/div>/g,
       ''
     );
 
-    // 5. Возвращаем изменённый ответ
-    return new Response(modifiedHtml, {
+    // 6. Возвращаем изменённую страницу
+    return new Response(html, {
       status: response.status,
       statusText: response.statusText,
       headers: {
         ...Object.fromEntries(response.headers),
-        "content-length": String(modifiedHtml.length)
+        "content-length": String(html.length)
       }
     });
   }
