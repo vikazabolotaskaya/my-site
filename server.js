@@ -10,7 +10,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 const proxy = createProxyMiddleware({
-  target: 'https://lifemart.ru',
+  target: 'https://lifemart.ru/apps/coffee-logs/index.html?department=240',
   changeOrigin: true,
   selfHandleResponse: true,
   onProxyRes: async (proxyRes, req, res) => {
