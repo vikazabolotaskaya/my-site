@@ -1,7 +1,7 @@
 {
   "name": "lifemart-proxy",
   "version": "1.0.0",
-  "description": "A reverse proxy to remove debug panel",
+  "description": "Reverse proxy to remove debug panel",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
