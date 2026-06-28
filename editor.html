@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Редактор обёртки iframe</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1e1e2f;
+            color: #eee;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .editor-header {
+            background: #2d2d44;
+            padding: 12px 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 20px;
+            align-items: center;
+            border-bottom: 2px solid #444;
+            flex-shrink: 0;
+        }
+        .editor-header label {
+            font-size: 13px;
+            color: #aaa;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .editor-header input,
+        .editor-header select {
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #555;
+            background: #111;
+            color: #fff;
+            font-size: 13px;
+        }
+        .editor-header input[type="text"] {
+            min-width: 200px;
+            flex: 1;
+        }
+        .editor-header input[type="number"] {
+            width: 60px;
+        }
+        .editor-header button {
+            background: #4ea8ff;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 4px;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .editor-header button:hover {
+            background: #6bb8ff;
+        }
+        .main-area {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        .preview-panel {
+            flex: 1;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+        }
+        .preview-panel .panel-title {
+            background: #2d2d44;
+            padding: 4px 16px;
+            font-size: 13px;
+            color: #aaa;
+            border-bottom: 1px solid #444;
+            flex-shrink: 0;
+        }
+        .preview-panel iframe {
+            flex: 1;
+            border: none;
+            width: 100%;
+        }
+        .code-panel {
+            width: 45%;
+            min-width: 300px;
+            background: #0d0d1a;
+            display: flex;
+            flex-direction: column;
+            border-left: 2px solid #444;
+        }
+        .code-panel .panel-title {
+            background: #2d2d44;
+            padding: 4px 16px;
+            font-size: 13px;
+            color: #aaa;
+            border-bottom: 1px solid #444;
+            flex-shrink: 0;
+            display: flex;
+            justify-content: space-between;
+        }
+        .code-panel .panel-title button {
+            background: #2ecc71;
+            border: none;
+            padding: 2px 12px;
+            border-radius: 4px;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .code-panel textarea {
+            flex: 1;
+            background: #0d0d1a;
+            color: #d4d4d4;
+            border: none;
+            padding: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+            tab-size: 2;
+        }
+        .code-panel textarea:focus {
+            background: #111122;
+        }
+        @media (max-width: 768px) {
+            .main-area {
+                flex-direction: column;
+            }
+            .code-panel {
+                width: 100%;
+                min-width: unset;
+                height: 50%;
+                border-left: none;
+                border-top: 2px solid #444;
+            }
+            .preview-panel {
+                height: 50%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="editor-header">
+        <label>Заголовок страницы <input type="text" id="pageTitle" value="Coffee Logs" /></label>
+        <label>URL <input type="text" id="iframeUrl" value="https://lifemart.ru/apps/coffee-logs/index.html?department=240" /></label>
+        <label>Ширина <input type="number" id="iframeWidth" value="100" />%</label>
+        <label>Высота <input type="number" id="iframeHeight" value="100" />%</label>
+        <label>Атрибуты <input type="text" id="iframeAttrs" value="allow='fullscreen; geolocation; microphone; camera' loading='lazy'" style="min-width:200px;" /></label>
+        <button id="applyBtn">Применить</button>
+    </div>
+
+    <div class="main-area">
+        <div class="preview-panel">
+            <div class="panel-title">👁️ Предпросмотр</div>
+            <iframe id="previewFrame"></iframe>
+        </div>
+        <div class="code-panel">
+            <div class="panel-title">
+                <span>📄 Готовый HTML-код (скопируйте и вставьте в index.html)</span>
+                <button id="copyBtn">📋 Копировать</button>
+            </div>
+            <textarea id="codeOutput" spellcheck="false"></textarea>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const titleInput = document.getElementById('pageTitle');
+            const urlInput = document.getElementById('iframeUrl');
+            const widthInput = document.getElementById('iframeWidth');
+            const heightInput = document.getElementById('iframeHeight');
+            const attrsInput = document.getElementById('iframeAttrs');
+            const applyBtn = document.getElementById('applyBtn');
+            const preview = document.getElementById('previewFrame');
+            const codeOutput = document.getElementById('codeOutput');
+            const copyBtn = document.getElementById('copyBtn');
+
+            function generateHTML() {
+                const title = titleInput.value.trim() || 'Страница';
+                const url = urlInput.value.trim() || 'https://example.com';
+                const width = widthInput.value || '100';
+                const height = heightInput.value || '100';
+                const attrs = attrsInput.value.trim();
+
+                return `<!DOCTYPE html>
+        <html lang="ru">
+        <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <title>${title}</title>
+            <style>
+                body { margin: 0; height: 100vh; overflow: hidden; background: #fff; }
+                iframe { width: ${width}%; height: ${height}%; border: none; display: block; }
+            </style>
+        </head>
+        <body>
+            <iframe src="${url}" ${attrs}></iframe>
+        </body>
+        </html>`;
+            }
+
+            function updatePreview() {
+                const html = generateHTML();
+                // Записываем в iframe
+                const doc = preview.contentDocument || preview.contentWindow.document;
+                doc.open();
+                doc.write(html);
+                doc.close();
+                // Обновляем текстовое поле
+                codeOutput.value = html;
+            }
+
+            function copyCode() {
+                codeOutput.select();
+                document.execCommand('copy');
+                // Подсветим кнопку
+                copyBtn.textContent = '✅ Скопировано!';
+                setTimeout(() => { copyBtn.textContent = '📋 Копировать'; }, 2000);
+            }
+
+            // События
+            applyBtn.addEventListener('click', updatePreview);
+
+            // Автообновление при изменении полей (опционально)
+            [titleInput, urlInput, widthInput, heightInput, attrsInput].forEach(el => {
+                el.addEventListener('input', updatePreview);
+            });
+
+            copyBtn.addEventListener('click', copyCode);
+
+            // Инициализация
+            updatePreview();
+        })();
+    </script>
+</body>
+</html>
